@@ -1,4 +1,4 @@
-﻿<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
     pageEncoding="ISO-8859-1"%>
 <!DOCTYPE html>
 <html>
@@ -30,7 +30,7 @@
 
 		try{		
 			Class.forName("com.mysql.jdbc.Driver");
-			conn=DriverManager.getConnection("jdbc:mysql://mysql:3306/drugdatabase","root","1234");
+			conn=DriverManager.getConnection("jdbc:mysql://mysql:3306/drugdatabase?useSSL=false&allowPublicKeyRetrieval=true","root","1234");
 			ps1=conn.prepareStatement(query1);
 			ps1.setString(1,uid1);
 			rs=ps1.executeQuery();
@@ -51,6 +51,10 @@
 					ps2.setString(6,address1);
 					ps2.setLong(7,phno2);
 					int i=ps2.executeUpdate();
+					PreparedStatement ps3=conn.prepareStatement("INSERT INTO userSettings (uid, theme, accentColor, language, remindBefore, repeatReminder, vibration, dndStart, dndEnd, timeFormat) VALUES (?, 'light', 'blue', 'en', '10', 0, 1, '22:00', '08:00', '12h')");
+					ps3.setString(1,uid1);
+					ps3.executeUpdate();
+					ps3.close();
 					response.sendRedirect("Login.html");
 				}
 				else

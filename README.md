@@ -1,91 +1,65 @@
-# Pharmacy Drug Management System - MediTracking
+# MediTracking — Pharmacy Drug Management
 
-A web-based pharmacy drug management system built with Java/JSP, MySQL, and Apache Tomcat. This system provides inventory management, order processing, and medication tracking capabilities for pharmacies.
+Customer pharmacy store **plus** a daily medication tracker (MediTracker), in one web app.
 
-## Features
+**Project status:** complete educational / portfolio demo. Not a certified medical product and not for real patient data or payments. See [docs/SECURITY.md](docs/SECURITY.md).
 
-- **User Authentication**: Login/Register for customers and sellers
-- **Inventory Management**: Add, update, and track medicine inventory
-- **Order Processing**: Place and manage orders
-- **Medication Tracking**: Track medication usage and history
-- **Seller Dashboard**: Dedicated interface for pharmacy sellers
-- **Multi-language Support**: Internationalization (i18n) ready
+## What you get
 
-## Tech Stack
+| Role | Capabilities |
+|---|---|
+| **Customer** | Register, login, buy medicines, view orders, MediTracker (today / add / history / settings, EN + TA) |
+| **Vendor** | Register, login, add products, restock, view customer orders |
 
-- **Backend**: Java (JSP/Servlets)
-- **Database**: MySQL
-- **Build Tool**: Apache Ant
-- **Server**: Apache Tomcat
-- **Frontend**: HTML, CSS, JavaScript
-- **Database Driver**: MySQL Connector/J 5.1.48
+## Quick start
 
-## Project Structure
-
-```
-Pharmacy-Drug-Mangement/
-├── WebContent/                 # Web application files
-│   ├── *.jsp                   # JSP pages for all features
-│   ├── *.html                  # Static HTML pages
-│   ├── css/                    # Stylesheets
-│   ├── js/                     # JavaScript files (including i18n)
-│   ├── images/                 # Image assets
-│   ├── META-INF/               # Web app metadata
-│   └── WEB-INF/                # Web app configuration
-│       ├── lib/                # JAR dependencies
-│       └── security.jsp        # Security configuration
-├── nbproject/                  # NetBeans project configuration
-├── build.xml                   # Ant build script
-└── .gitignore                  # Git ignore rules
-```
-
-## Database Setup
-
-Run the SQL scripts in the parent directory to initialize the database:
+Needs **Node.js 22+**.
 
 ```bash
-# Main database schema
-mysql -u root -p < ../drugdatabase.sql
-
-# Migration script
-mysql -u root -p < ../meditracker_migration.sql
+npm install
+npm start
 ```
 
-## Building the Project
+Open http://localhost:8080
 
-Using Apache Ant:
+| Role | Account type on login | User ID | Password |
+|---|---|---|---|
+| Customer | Customer | `demo` | `demo123` |
+| Vendor | Seller | `vendor` | `vendor123` |
+
+After customer login, use the **MEDITRACKER** tab.
 
 ```bash
-ant clean
-ant compile
-ant war
+npm run start:prod   # same server; set PORT / SESSION_SECRET in the environment
 ```
 
-The WAR file will be generated in the `dist/` directory.
+## Repository layout
 
-## Deployment
+```
+├── WebContent/          UI (HTML, JSP sources, CSS, JS, images)
+├── server/              Live Node runtime (Express + SQLite)
+├── sql/                 MySQL schema + MediTracker migration
+├── docs/                Architecture, user guide, security
+├── docker-compose.yml   Optional MySQL + app compose file
+├── package.json         npm start
+└── build.xml            Original Ant / Tomcat WAR build
+```
 
-1. Deploy the generated WAR file to Apache Tomcat
-2. Configure MySQL database connection in `WebContent/META-INF/context.xml`
-3. Start Tomcat server
-4. Access the application at `http://localhost:8080/Pharmacy-Drug-Mangement`
+## Docs
 
-## Key Pages
+- [User guide](docs/USER_GUIDE.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Security and scope](docs/SECURITY.md)
 
-- **Index.html** - Landing page
-- **Login.jsp / Register.jsp** - Authentication
-- **Homepage.jsp** - Customer dashboard
-- **SellerHomepage.jsp** - Seller dashboard
-- **AddProduct.jsp** - Add new medicines
-- **UpdateInventory.jsp** - Manage stock levels
-- **Orders.jsp / PlaceOrder.jsp** - Order management
-- **TrackerDashboard.jsp** - Medication tracking dashboard
-- **TrackerToday.jsp / TrackerHistory.jsp** - Tracking views
+## Tomcat + MySQL (original JSP path)
 
-## Screenshots
+```bash
+mysql -u root -p < sql/drugdatabase.sql
+mysql -u root -p < sql/meditracker_migration.sql
+```
 
-Screenshots are available in the `../Screenshots/` directory.
+JSP pages use `jdbc:mysql://mysql:3306/drugdatabase` (Docker DNS). For a host MySQL, map `mysql` to `127.0.0.1` in `/etc/hosts`. Then build a WAR with Ant and deploy to Tomcat under `/Pharmacy-Drug-Mangement`.
 
 ## License
 
-This project is for educational/demo purposes.
+MIT — see [LICENSE](LICENSE). Demo only; no warranty.

@@ -1,4 +1,4 @@
-﻿<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
     pageEncoding="ISO-8859-1"%>
 <!DOCTYPE html>
 <html>
@@ -23,6 +23,7 @@
 				<a href="Homepage.jsp">HOME</a>
 				<a href="Buy.jsp">BUY</a>
 				<a href="Orders.jsp">ORDERS</a>
+				<a href="TrackerDashboard.jsp">MEDITRACKER</a>
 			</div>
 		</div>
 	</div>
@@ -33,6 +34,11 @@
 	<%
 	HttpSession httpSession = request.getSession();
     String gid=(String)httpSession.getAttribute("currentuser");
+    String userType=(String)httpSession.getAttribute("currentusertype");
+    if(gid == null || !"1".equals(userType)) {
+    	response.sendRedirect("Login.html");
+    	return;
+    }
     %>
     
     <div class="filler"></div>
@@ -44,7 +50,7 @@
 	java.sql.Connection conn=null;
 		try{
 		Class.forName("com.mysql.jdbc.Driver");
-		conn=DriverManager.getConnection("jdbc:mysql://mysql:3306/drugdatabase","root","1234");
+		conn=DriverManager.getConnection("jdbc:mysql://mysql:3306/drugdatabase?useSSL=false&allowPublicKeyRetrieval=true","root","1234");
 		cs = conn.prepareCall("call getorders(?)");
 		cs.setString(1, gid);
 		rs = cs.executeQuery();

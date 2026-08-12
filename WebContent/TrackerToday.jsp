@@ -1,4 +1,4 @@
-﻿<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
     pageEncoding="ISO-8859-1"%>
 <%@ page import="java.sql.*" %>
 <%@ page import="javax.sql.*" %>
@@ -41,7 +41,7 @@
 	ResultSet rs = null;
 	try {
 		Class.forName("com.mysql.jdbc.Driver");
-		conn = DriverManager.getConnection("jdbc:mysql://mysql:3306/drugdatabase", "root", "1234");
+		conn = DriverManager.getConnection("jdbc:mysql://mysql:3306/drugdatabase?useSSL=false&allowPublicKeyRetrieval=true", "root", "1234");
 
 		ps = conn.prepareStatement("SELECT * FROM userSettings WHERE uid=?");
 		ps.setString(1, guid);
@@ -142,6 +142,8 @@
 		request.setAttribute("medsJson", medsJson.toString());
 		request.setAttribute("listHtml", listHtml.toString());
 	} catch (Exception e) {
+		if (request.getAttribute("listHtml") == null) request.setAttribute("listHtml", "");
+		if (request.getAttribute("medsJson") == null) request.setAttribute("medsJson", "");
 		out.println("error: " + esc(String.valueOf(e)));
 	} finally {
 		try { if (rs != null) rs.close(); } catch (Exception e) {}
