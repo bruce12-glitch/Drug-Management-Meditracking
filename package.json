@@ -1,0 +1,16 @@
+{
+  "name": "drug-management-meditracking",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Live server for Pharmacy Drug Management + MediTracker",
+  "scripts": {
+    "start": "node server/app.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "express-session": "^1.18.1"
+  }
+}

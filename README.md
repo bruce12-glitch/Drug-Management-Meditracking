@@ -39,17 +39,30 @@ Pharmacy-Drug-Mangement/
 └── .gitignore                  # Git ignore rules
 ```
 
-## Database Setup
+## Live / local run (recommended)
 
-Run the SQL scripts in the parent directory to initialize the database:
+This sandbox and most hosts can run the app with Node 22 (no Tomcat required). The live server uses the same pages, session rules, and MediTracker tables as the JSP app.
 
 ```bash
-# Main database schema
-mysql -u root -p < ../drugdatabase.sql
-
-# Migration script
-mysql -u root -p < ../meditracker_migration.sql
+npm install
+npm start
 ```
+
+Open `http://localhost:8080`. Demo accounts:
+
+- Customer: `demo` / `demo123` then click **MEDITRACKER**
+- Vendor: `vendor` / `vendor123`
+
+## Database Setup (Tomcat / MySQL)
+
+SQL scripts now live in `sql/`:
+
+```bash
+mysql -u root -p < sql/drugdatabase.sql
+mysql -u root -p < sql/meditracker_migration.sql
+```
+
+JSP pages connect to `jdbc:mysql://mysql:3306/drugdatabase` (Docker DNS). For a local MySQL, add `127.0.0.1 mysql` to `/etc/hosts`.
 
 ## Building the Project
 

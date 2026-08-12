@@ -1,1 +1,7 @@
 /build/
+/dist/
+/data/
+node_modules/
+.idea/
+*.log
+

@@ -20,7 +20,7 @@ PreparedStatement ps=null;
 String query="update inventory set quantity=quantity+? where sid=? and pid=?";
 try{
 	Class.forName("com.mysql.jdbc.Driver");
-	conn=DriverManager.getConnection("jdbc:mysql://mysql:3306/drugdatabase","root","1234");
+	conn=DriverManager.getConnection("jdbc:mysql://mysql:3306/drugdatabase?useSSL=false&allowPublicKeyRetrieval=true","root","1234");
 	ps=conn.prepareStatement(query);
 	ps.setInt(1,qt);
 	ps.setString(2,guid);

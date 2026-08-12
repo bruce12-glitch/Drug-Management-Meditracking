@@ -87,7 +87,7 @@
 					PreparedStatement ps = null;
 					try {
 						Class.forName("com.mysql.jdbc.Driver");
-						conn = DriverManager.getConnection("jdbc:mysql://mysql:3306/drugdatabase", "root", "1234");
+						conn = DriverManager.getConnection("jdbc:mysql://mysql:3306/drugdatabase?useSSL=false&allowPublicKeyRetrieval=true", "root", "1234");
 						ps = conn.prepareStatement("INSERT INTO medicines (uid, medicineName, dayCycle, foodReference, startDate, endDate, expiryDate, reminderTime, createdAt) VALUES (?,?,?,?,?,?,?,?,NOW())");
 						ps.setString(1, guid);
 						ps.setString(2, medName.trim());
@@ -118,7 +118,7 @@
 	ResultSet rs2 = null;
 	try {
 		Class.forName("com.mysql.jdbc.Driver");
-		conn2 = DriverManager.getConnection("jdbc:mysql://mysql:3306/drugdatabase", "root", "1234");
+		conn2 = DriverManager.getConnection("jdbc:mysql://mysql:3306/drugdatabase?useSSL=false&allowPublicKeyRetrieval=true", "root", "1234");
 		ps2 = conn2.prepareStatement("SELECT theme, accentColor, language FROM userSettings WHERE uid=?");
 		ps2.setString(1, guid);
 		rs2 = ps2.executeQuery();

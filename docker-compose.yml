@@ -1,0 +1,38 @@
+services:
+  mysql:
+    image: mysql:5.7
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: "1234"
+      MYSQL_DATABASE: drugdatabase
+    command: ["--default-authentication-plugin=mysql_native_password", "--bind-address=0.0.0.0"]
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./sql/drugdatabase.sql:/docker-entrypoint-initdb.d/01-drugdatabase.sql:ro
+      - ./sql/meditracker_migration.sql:/docker-entrypoint-initdb.d/02-meditracker.sql:ro
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p1234"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    image: node:22-bookworm-slim
+    container_name: meditracking-app
+    working_dir: /app
+    command: ["node", "server/app.js"]
+    environment:
+      PORT: "8080"
+      HOST: "0.0.0.0"
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
