@@ -3,5 +3,6 @@
 /data/
 node_modules/
 .idea/
+.env
 *.log
-
+nbproject/private/

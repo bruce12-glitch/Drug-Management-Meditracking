@@ -19,6 +19,7 @@ const db = openDb();
 const WEB = path.join(__dirname, "..", "WebContent");
 const PORT = Number(process.env.PORT || 8080);
 const HOST = process.env.HOST || "0.0.0.0";
+// SESSION_SECRET can be set in the environment for shared/demo hosts.
 
 app.set("trust proxy", 1);
 app.use(
