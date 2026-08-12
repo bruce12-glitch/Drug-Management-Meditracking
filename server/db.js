@@ -104,6 +104,7 @@ function openDb() {
     );
   `);
   seed(db);
+  db.exec("UPDATE inventory SET quantity = 0 WHERE quantity < 0;");
   return db;
 }
 

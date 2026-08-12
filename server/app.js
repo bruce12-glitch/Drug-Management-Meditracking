@@ -130,6 +130,26 @@ function getSettings(uid) {
 }
 
 // ---------- Auth ----------
+app.get(["/Login.jsp", "/Pharmacy-Drug-Mangement/Login.jsp"], (req, res) => {
+  res.redirect("/Login.html");
+});
+app.get(["/Register.jsp", "/Pharmacy-Drug-Mangement/Register.jsp"], (req, res) => {
+  res.redirect("/Register.html");
+});
+app.get(["/SellerRegister.jsp", "/Pharmacy-Drug-Mangement/SellerRegister.jsp"], (req, res) => {
+  res.redirect("/SellerRegister.html");
+});
+
+function requireSellerFile(file) {
+  return (req, res) => {
+    if (!requireSeller(req, res)) return;
+    res.sendFile(path.join(WEB, file));
+  };
+}
+app.get(["/AddProduct.html", "/Pharmacy-Drug-Mangement/AddProduct.html"], requireSellerFile("AddProduct.html"));
+app.get(["/AddProductError.html", "/Pharmacy-Drug-Mangement/AddProductError.html"], requireSellerFile("AddProductError.html"));
+app.get(["/AddProductError2.html", "/Pharmacy-Drug-Mangement/AddProductError2.html"], requireSellerFile("AddProductError2.html"));
+
 app.post(["/Login.jsp", "/Pharmacy-Drug-Mangement/Login.jsp"], (req, res) => {
   const uid1 = req.body.userid;
   const pass1 = req.body.password;
@@ -152,37 +172,47 @@ app.post(["/Login.jsp", "/Pharmacy-Drug-Mangement/Login.jsp"], (req, res) => {
 app.post(["/Register.jsp", "/Pharmacy-Drug-Mangement/Register.jsp"], (req, res) => {
   try {
     const { fname, lname, email, phno, uid, address, pass1, pass2 } = req.body;
+    if (![fname, lname, email, phno, uid, address, pass1, pass2].every((v) => v && String(v).trim())) {
+      return res.redirect("/RegisterError2.html");
+    }
+    if (String(uid).length > 20 || String(pass1).length > 20) return res.redirect("/RegisterError2.html");
+    if (!/^\d{6,15}$/.test(String(phno))) return res.redirect("/RegisterError2.html");
     if (db.prepare("SELECT uid FROM customer WHERE uid=?").get(uid)) {
       return res.redirect("/RegisterError1.html");
     }
     if (pass1 !== pass2) return res.redirect("/RegisterError2.html");
     db.prepare(
       "INSERT INTO customer(uid,pass,fname,lname,email,address,phno) VALUES (?,?,?,?,?,?,?)"
-    ).run(uid, pass1, fname, lname, email, address, Number(phno));
-    ensureSettings(db, uid);
+    ).run(String(uid).trim(), pass1, fname.trim(), lname.trim(), email.trim(), address.trim(), Number(phno));
+    ensureSettings(db, String(uid).trim());
     return res.redirect("/Login.html");
   } catch (e) {
-    res.type("html").send(String(e));
+    res.redirect("/RegisterError2.html");
   }
 });
 
 app.post(["/SellerRegister.jsp", "/Pharmacy-Drug-Mangement/SellerRegister.jsp"], (req, res) => {
   try {
     const { name, phno, uid, address, pass1, pass2 } = req.body;
+    if (![name, phno, uid, address, pass1, pass2].every((v) => v && String(v).trim())) {
+      return res.redirect("/SellerRegisterError2.html");
+    }
+    if (String(uid).length > 20 || String(pass1).length > 20) return res.redirect("/SellerRegisterError2.html");
+    if (!/^\d{6,15}$/.test(String(phno))) return res.redirect("/SellerRegisterError2.html");
     if (db.prepare("SELECT sid FROM seller WHERE sid=?").get(uid)) {
       return res.redirect("/SellerRegisterError1.html");
     }
     if (pass1 !== pass2) return res.redirect("/SellerRegisterError2.html");
     db.prepare("INSERT INTO seller(sid,pass,sname,address,phno) VALUES (?,?,?,?,?)").run(
-      uid,
+      String(uid).trim(),
       pass1,
-      name,
-      address,
+      name.trim(),
+      address.trim(),
       Number(phno)
     );
     return res.redirect("/Login.html");
   } catch (e) {
-    res.type("html").send("error: " + e);
+    res.redirect("/SellerRegisterError2.html");
   }
 });
 
@@ -225,36 +255,37 @@ app.get(["/Buy.jsp", "/Pharmacy-Drug-Mangement/Buy.jsp"], (req, res) => {
   if (!requireCustomer(req, res)) return;
   const rows = db
     .prepare(
-      "SELECT p.pname,p.pid,p.manufacturer,p.mfg,p.price,i.quantity FROM product p, inventory i WHERE p.pid=i.pid"
+      "SELECT p.pname,p.pid,p.manufacturer,p.mfg,p.price,i.quantity FROM product p, inventory i WHERE p.pid=i.pid ORDER BY p.pname"
     )
     .all();
-  let html = `<div class="filler"></div><div class="filler2"></div><div class="block">`;
-  let flag = 0;
+  const notice =
+    req.query.error === "stock"
+      ? `<div class="flash-error">Not enough stock for that order. Please choose a smaller quantity.</div>`
+      : req.query.error === "qty"
+        ? `<div class="flash-error">Enter a valid quantity of at least 1.</div>`
+        : "";
+  let html = `<div class="filler"></div>${notice}<div class="filler2"></div><div class="product-grid">`;
+  if (!rows.length) {
+    html += `<div class="empty-note">No medicines are listed for sale yet.</div>`;
+  }
   for (const rs of rows) {
-    if (flag === 4) {
-      flag = 1;
-      html += `</div><div class="filler2"></div>`;
-    } else flag++;
     const buy =
       rs.quantity > 0
         ? `<form action="PlaceOrder.jsp" method="post">
-  					<input type="number" name="orderquantity" onkeypress="return event.charCode>= 48 && event.charCode<= 57" placeholder="Enter quantity" max="${rs.quantity}" required >
+  					<input type="number" name="orderquantity" min="1" max="${rs.quantity}" step="1" placeholder="Enter quantity" required >
   					<input type="hidden" name="pid" value="${esc(rs.pid)}">
   					<p></p>
   					<button>Buy</button></form>`
-        : `<button>Out Of Stock</button>`;
-    html += `<div class="row">
- 				<div class="column">
-    				<div class="card">
-    				<img src="images/pills.png" width=180 height=200>
+        : `<button type="button" disabled>Out Of Stock</button>`;
+    html += `<div class="card">
+    				<img src="images/pills.png" width=180 height=200 alt="">
   					<h1>${esc(rs.pname)}</h1>
   					<p><b>ID: </b>${esc(rs.pid)}</p>
 					<p><b>Manufacturer: </b>${esc(rs.manufacturer)}</p>
 					<p><b>Mfg Date: </b>${esc(rs.mfg)}</p>
 					<p><b>Stock: </b>${esc(rs.quantity)}</p>
 					<p><b>Price: </b>${esc(rs.price)}</p>
-					${buy}</div>
-  				</div>`;
+					${buy}</div>`;
   }
   html += `</div>`;
   res.type("html").send(storeChrome("Buy", "Buy.css", customerNav("BUY"), html));
@@ -266,12 +297,18 @@ app.post(["/PlaceOrder.jsp", "/Pharmacy-Drug-Mangement/PlaceOrder.jsp"], (req, r
     const pid = req.body.pid;
     const qr = Number(req.body.orderquantity);
     const guid = req.session.currentuser;
+    if (!Number.isInteger(qr) || qr < 1) return res.redirect("/Buy.jsp?error=qty");
     const rs = db
       .prepare(
-        "SELECT P.pid, O.sid, P.price FROM inventory O, product P WHERE P.pid=? AND P.pid=O.pid"
+        "SELECT P.pid, O.sid, P.price, O.quantity FROM inventory O, product P WHERE P.pid=? AND P.pid=O.pid"
       )
       .get(pid);
-    if (!rs) return res.type("html").send("Product not found");
+    if (!rs) return res.redirect("/Buy.jsp?error=stock");
+    if (rs.quantity < qr) return res.redirect("/Buy.jsp?error=stock");
+    const updated = db
+      .prepare("UPDATE inventory SET quantity=quantity-? WHERE pid=? AND sid=? AND quantity>=?")
+      .run(qr, rs.pid, rs.sid, qr);
+    if (!updated.changes) return res.redirect("/Buy.jsp?error=stock");
     db.prepare("INSERT INTO orders(pid,sid,uid,quantity,price) VALUES (?,?,?,?,?)").run(
       rs.pid,
       rs.sid,
@@ -279,10 +316,9 @@ app.post(["/PlaceOrder.jsp", "/Pharmacy-Drug-Mangement/PlaceOrder.jsp"], (req, r
       qr,
       qr * rs.price
     );
-    db.prepare("UPDATE inventory SET quantity=quantity-? WHERE pid=? AND sid=?").run(qr, rs.pid, rs.sid);
     res.redirect("/Orders.jsp");
   } catch (e) {
-    res.type("html").send(String(e));
+    res.redirect("/Buy.jsp?error=stock");
   }
 });
 
@@ -290,14 +326,22 @@ app.get(["/Orders.jsp", "/Pharmacy-Drug-Mangement/Orders.jsp"], (req, res) => {
   if (!requireCustomer(req, res)) return;
   const rows = db
     .prepare(
-      "SELECT oid, pid, price, quantity, sid, orderdatetime FROM orders WHERE uid=? ORDER BY orderdatetime DESC"
+      `SELECT o.oid, o.pid, o.price, o.quantity, o.sid, o.orderdatetime,
+              COALESCE(p.pname, o.pid) AS pname
+         FROM orders o
+    LEFT JOIN product p ON p.pid = o.pid
+        WHERE o.uid=?
+     ORDER BY o.orderdatetime DESC`
     )
     .all(req.session.currentuser);
+  const empty = rows.length
+    ? ""
+    : `<div class="empty-note">You have not placed any orders yet. Visit BUY to order medicines.</div>`;
   const tr = rows
     .map(
       (rs) => `<tr>
     			<td>${esc(rs.oid)}</td>
-    			<td>${esc(rs.pid)}</td>
+    			<td>${esc(rs.pname)} (${esc(rs.pid)})</td>
     			<td>${esc(rs.price)}</td>
     			<td>${esc(rs.quantity)}</td>
     			<td>${esc(rs.sid)}</td>
@@ -314,14 +358,15 @@ app.get(["/Orders.jsp", "/Pharmacy-Drug-Mangement/Orders.jsp"], (req, res) => {
 		<table class="tables">
 			<tr>
     			<th>Order ID</th>
-    			<th>Product ID</th>
+    			<th>Product</th>
     			<th>Price</th>
     			<th>Quantity</th>
     			<th>Seller ID</th>
     			<th>Order Date and Time</th>
   			</tr>
 		${tr}
-		</table>`
+		</table>
+		${empty}`
     )
   );
 });
@@ -358,22 +403,30 @@ app.post(["/AddProduct.jsp", "/Pharmacy-Drug-Mangement/AddProduct.jsp"], (req, r
   try {
     const guid = req.session.currentuser;
     const { prname, prid, mfname, mdate, edate, price, quantity } = req.body;
+    const priceN = Number(price);
+    const qtyN = Number(quantity);
+    if (![prname, prid, mfname, mdate, edate].every((v) => v && String(v).trim())) {
+      return res.redirect("/AddProductError2.html");
+    }
+    if (!Number.isInteger(priceN) || priceN < 1 || !Number.isInteger(qtyN) || qtyN < 1) {
+      return res.redirect("/AddProductError2.html");
+    }
     if (db.prepare("SELECT pid FROM product WHERE pid=?").get(prid)) {
       return res.redirect("/AddProductError.html");
     }
     db.prepare("INSERT INTO product(pid,pname,manufacturer,mfg,exp,price) VALUES (?,?,?,?,?,?)").run(
-      prid,
-      prname,
-      mfname,
+      String(prid).trim(),
+      prname.trim(),
+      mfname.trim(),
       mdate,
       edate,
-      Number(price)
+      priceN
     );
     db.prepare("INSERT INTO inventory(pid,pname,sid,quantity) VALUES (?,?,?,?)").run(
-      prid,
-      prname,
+      String(prid).trim(),
+      prname.trim(),
       guid,
-      Number(quantity)
+      qtyN
     );
     res.redirect("/AddInventory.jsp");
   } catch (e) {
@@ -385,21 +438,21 @@ app.get(["/AddInventory.jsp", "/Pharmacy-Drug-Mangement/AddInventory.jsp"], (req
   if (!requireSeller(req, res)) return;
   const rows = db
     .prepare(
-      "SELECT p.pid,i.quantity,p.pname,p.manufacturer,p.mfg,p.exp,p.price FROM product p, inventory i WHERE p.pid=i.pid AND i.sid=?"
+      "SELECT p.pid,i.quantity,p.pname,p.manufacturer,p.mfg,p.exp,p.price FROM product p, inventory i WHERE p.pid=i.pid AND i.sid=? ORDER BY p.pname"
     )
     .all(req.session.currentuser);
-  let html = `<div class="filler"></div><div class="filler2"></div><div class="block">`;
-  let flag = 0;
+  const notice =
+    req.query.error === "qty"
+      ? `<div class="flash-error">Enter a valid restock quantity of at least 1.</div>`
+      : "";
+  let html = `<div class="filler"></div>${notice}<div class="filler2"></div><div class="product-grid">`;
+  if (!rows.length) {
+    html += `<div class="empty-note">No products yet. Use ADD to list a medicine.</div>`;
+  }
   for (const rs of rows) {
-    if (flag === 4) {
-      flag = 1;
-      html += `</div><div class="filler2"></div>`;
-    } else flag++;
-    html += `<div class="row">
- 				<div class="column">
-    				<div class="card">
+    html += `<div class="card">
     					<form action="UpdateInventory.jsp" method="post">
-    						<img src="images/pills.png" width=180 height=200>
+    						<img src="images/pills.png" width=180 height=200 alt="">
   							<h1>${esc(rs.pname)}</h1>
   							<p><b>ID: </b>${esc(rs.pid)}</p>
 							<p><b>Manufacturer: </b>${esc(rs.manufacturer)}</p>
@@ -407,22 +460,23 @@ app.get(["/AddInventory.jsp", "/Pharmacy-Drug-Mangement/AddInventory.jsp"], (req
 							<p><b>Exp Date: </b>${esc(rs.exp)}</p>
 							<p><b>Stock: </b>${esc(rs.quantity)}</p>
 							<p><b>Price: </b>${esc(rs.price)}</p>
-							<p><input type="text" name="restock" placeholder="quantity" onkeypress="return event.charCode>= 48 && event.charCode<= 57" required></p>
+							<p><input type="number" name="restock" min="1" step="1" placeholder="quantity" required></p>
 							<input type="hidden" name="pid" value="${esc(rs.pid)}" >
 							<p></p>
   							<button>ReStock</button>
   						</form>
-  					</div>
-  				</div>`;
+  					</div>`;
   }
-  html += `</div></div>`;
+  html += `</div>`;
   res.type("html").send(storeChrome("ReStock", "Buy.css", sellerNav(), html));
 });
 
 app.post(["/UpdateInventory.jsp", "/Pharmacy-Drug-Mangement/UpdateInventory.jsp"], (req, res) => {
   if (!requireSeller(req, res)) return;
+  const qty = Number(req.body.restock);
+  if (!Number.isInteger(qty) || qty < 1) return res.redirect("/AddInventory.jsp?error=qty");
   db.prepare("UPDATE inventory SET quantity=quantity+? WHERE sid=? AND pid=?").run(
-    Number(req.body.restock),
+    qty,
     req.session.currentuser,
     req.body.pid
   );
@@ -433,14 +487,22 @@ app.get(["/SellerOrders.jsp", "/Pharmacy-Drug-Mangement/SellerOrders.jsp"], (req
   if (!requireSeller(req, res)) return;
   const rows = db
     .prepare(
-      "SELECT oid, pid, price, quantity, uid, orderdatetime FROM orders WHERE sid=? ORDER BY orderdatetime DESC"
+      `SELECT o.oid, o.pid, o.price, o.quantity, o.uid, o.orderdatetime,
+              COALESCE(p.pname, o.pid) AS pname
+         FROM orders o
+    LEFT JOIN product p ON p.pid = o.pid
+        WHERE o.sid=?
+     ORDER BY o.orderdatetime DESC`
     )
     .all(req.session.currentuser);
+  const empty = rows.length
+    ? ""
+    : `<div class="empty-note">No customer orders yet.</div>`;
   const tr = rows
     .map(
       (rs) => `<tr>
     			<td>${esc(rs.oid)}</td>
-    			<td>${esc(rs.pid)}</td>
+    			<td>${esc(rs.pname)} (${esc(rs.pid)})</td>
     			<td>${esc(rs.price)}</td>
     			<td>${esc(rs.quantity)}</td>
     			<td>${esc(rs.uid)}</td>
@@ -457,14 +519,15 @@ app.get(["/SellerOrders.jsp", "/Pharmacy-Drug-Mangement/SellerOrders.jsp"], (req
 		<table class="tables">
 			<tr>
     			<th>Order ID</th>
-    			<th>Product ID</th>
+    			<th>Product</th>
     			<th>Price</th>
     			<th>Quantity</th>
     			<th>CUSTOMER ID</th>
     			<th>Order Date and Time</th>
   			</tr>
 		${tr}
-		</table>`
+		</table>
+		${empty}`
     )
   );
 });
@@ -1031,6 +1094,13 @@ app.get("/health", (req, res) => {
   res.json({ ok: true, service: "meditracking", tracker: true });
 });
 
+app.use(["/WEB-INF", "/Pharmacy-Drug-Mangement/WEB-INF"], (_req, res) => {
+  res.status(404).type("text").send("Not found");
+});
+app.use((req, res, next) => {
+  if (/\.jsp$/i.test(req.path)) return res.redirect("/Login.html");
+  next();
+});
 app.use("/Pharmacy-Drug-Mangement", express.static(WEB));
 app.use(express.static(WEB));
 
